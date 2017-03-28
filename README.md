@@ -89,6 +89,12 @@ Carries the actual message. There is no limit to body size but if it exceeds a m
 - Body should always be encoded with Unicode(UTF-8).
 - Seperated from header with only a new line. This new line is not part of the body. Any new lines or whitespaces afterwards are assumed to be part of the body.
 
+#### Multi-Part Body
+
+One of the most important specifications of SMP is that it can support multiple communication chains at the same time. Different Q&As can occur simultenously. However, there needs to be a regulation governing multi-part messages. It would be impossible to understand which parts belong to which header.
+
+If a message is long and divided into parts, the message must specify ID field in the header. Remaining parts must also use the same ID in the header. Because TCP is a blocking messaging protocol, parts are not required to be labeled. Each part that is received can be concatenated to form a complete body. 
+
 ## Errors
 
 Socket programming is prone to errors. There are different kinds of error ranging from initial connections to timeout exceptions. This standard offers some methods to handle specific errors. 
@@ -111,4 +117,6 @@ Definition: The message is corrupted. Invalid header or missing EOF line after b
 
 Action: If ID was present and read correctly, send an acknowledgement message.
 
-```{"ack": "lol_hope_this_works", "error":"PARSE"}
+```{"ack": "lol_hope_this_works", "error":"PARSE"}```
+
+
