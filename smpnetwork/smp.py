@@ -8,17 +8,14 @@ from smpnetwork import tools
 
 
 class SMProtocol:
-    def __init__(self, sock):
-        if isinstance(sock, socket.SocketType):
-            self.sock = sock
-        else:
-            raise RuntimeError("SMP argument wrong. Type must be " + str(socket.SocketType))
-
+    def __init__(self, sock, hb_interval=5):
+        self.sock = sock
         self.receive_thread = threading.Thread(target=self._bind)
         self.heartbeat_thread = threading.Thread(target=self.heartbeat)
         self.is_active = True
         self._messages = {}
         self.sent_message_counter = 0
+        self.hb_interval = hb_interval
 
     def bind(self):
         self.receive_thread.start()
@@ -53,9 +50,8 @@ class SMProtocol:
     def heartbeat(self):
         index = 1
         while self.is_active:
-            result = smpnetwork.send("", {"HB": str(index)}, self.sock)
-            if result:
-                time.sleep(5)
+            if smpnetwork.send("", {"HB": str(index)}, self.sock):
+                time.sleep(self.hb_interval)
                 index += 1
             else:
                 self.is_active = False
@@ -64,9 +60,8 @@ class SMProtocol:
     def _bind(self):
         def strip_eof(message):
             body = message.get_body()
-            end_body_location = body.find("%end_body%")-1
-            if end_body_location >= 0:
-                body = body[:end_body_location]
+            if body[-1] == '\x10':
+                body = body[:-1]
                 message.set_body(body)
                 return message
             else:
@@ -79,7 +74,7 @@ class SMProtocol:
                 try:
                     header_end_index = string.index("\n")
                     header_str = string[:header_end_index]
-                    body_str = string[header_end_index+1:]
+                    body_str = string[header_end_index + 1:]
                 except:
                     tools.log("Could not partition received string")
                     continue
@@ -91,7 +86,7 @@ class SMProtocol:
                     continue
 
                 if "HB" in header_dict:
-                    # Simple heartbeat. All is well
+                    # Simple heartbeat. Al iz wel
                     continue
 
                 if "id" in header_dict:

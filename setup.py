@@ -4,11 +4,11 @@ from setuptools import find_packages
 
 setup(
     name='SMPNetwork',
-    version='0.0.1a',
-    description='Simple Messaging Protocol between a server and multiple clients. It supports continuous connections.',
+    version='0.0.1b',
+    description='Simple Messaging Protocol between a server and multiple clients. '
+                'Supports continuous connections and SSL.',
     author='Halil Ozercan',
     author_email='halilozercan@gmail',
     url='https://github.com/halilozercan/smp',
-    download_url='https://github.com/halilozercan/smp/tarball/0.0.1a',
     packages=find_packages(),
 )

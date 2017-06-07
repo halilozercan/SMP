@@ -1,16 +1,18 @@
 import socket
 import threading
 import time
+import ssl
 
 import tools
 from smp import SMProtocol
 
 
 class Server:
-    def __init__(self, smprotocol, port, external=False, smp_args=()):
+    def __init__(self, smprotocol, port, external=False, smp_args=(), ssl_args=None):
         self.smprotocol = smprotocol
         self.port = port
         self.external = external
+        self.ssl_args = ssl_args
 
         self.backlog = 20
 
@@ -25,13 +27,13 @@ class Server:
         self.client_smp_dict = {}
         self.client_counter = 0
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(10)
         self.thread_started = False
 
         self.new_client_lock = threading.Lock()
 
     def new_client(self, _socket):
         self.new_client_lock.acquire()
-
         name = str(self.client_counter) + "_client"
         _smp = self.smprotocol(_socket, self, name, *self.smp_args)
         _smp.bind()
@@ -70,6 +72,8 @@ class Server:
         while self.is_active:
             try:
                 client_sock, address = self.socket.accept()
+                if self.ssl_args is not None:
+                    client_sock = ssl.wrap_socket(client_sock, server_side=True, **self.ssl_args)
                 self.new_client(client_sock)
             except Exception as exc:
                 tools.log('Networking error: ' + str(self.port))
@@ -77,7 +81,6 @@ class Server:
 
 
 class ServerSMProtocol(SMProtocol):
-
     def __init__(self, sock, server, server_assigned_name):
         self.server = server
         self.server_assigned_name = server_assigned_name

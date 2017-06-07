@@ -27,11 +27,11 @@ def receive(sock, **kwargs):
     try:
         string = sock.recv(MAX_MESSAGE_SIZE)
         length = int(string[:string.index(":")])
-        string = string[string.index(":")+1:]
+        string = string[string.index(":") + 1:]
         while len(string) < length:
             string += sock.recv(MAX_MESSAGE_SIZE)
     except socket.timeout:
-        #Timed out
+        # Timed out
         return Response(False, 'Receive timed out')
 
     if string == '':
@@ -42,10 +42,9 @@ def receive(sock, **kwargs):
 
 
 def send(body, headers, sock):
-
     _msg = Message(header=headers, body=body)
 
-    msg = _msg.package()
+    msg = str(_msg)
     sent = 0
     total = 0
 
@@ -69,9 +68,12 @@ def send(body, headers, sock):
     return sent == total
 
 
-def connect(host='localhost', port=3699):
+def connect(host='localhost', port=3699, ssl_args=None):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setblocking(5)
+    if ssl_args is not None:
+        import ssl
+        s = ssl.wrap_socket(s, **ssl_args)
     try:
         s.connect((host, port))
         return s
