@@ -34,11 +34,8 @@ def receive(sock, **kwargs):
         return Response(False, 'timeout')
 
     if string == '':
-        print 'Received nothing'
         # it is eof. Socket is fucked up
         return Response(False, "closed")
-
-    print 'Received string'
 
     return Response(True, string)
 
@@ -63,7 +60,6 @@ def send(_msg, sock):
             except:
                 return False
 
-    print 'returning from send', sent == total
     return sent == total
 
 
