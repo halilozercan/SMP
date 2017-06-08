@@ -65,7 +65,6 @@ class SMProtocol:
 
         while self.is_active:
             response = smpnetwork.receive(self.sock)
-            print 'received', response
             if response.is_successful():
                 string = response.getData()
                 try:
