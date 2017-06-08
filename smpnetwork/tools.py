@@ -6,7 +6,7 @@ import logging
 import re
 import subprocess
 
-logging.basicConfig(filename="log", level=logging.INFO)
+logger = logging.getLogger('smp')
 
 
 def split_size(content, size):
@@ -20,9 +20,9 @@ def split_size(content, size):
 
 def log(junk):
     if isinstance(junk, Exception):
-        logging.exception(junk)
+        logger.exception(junk)
     else:
-        logging.info(str(junk))
+        logger.info(str(junk))
 
 
 def kill_processes_using_ports(ports):

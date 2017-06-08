@@ -15,14 +15,11 @@ def receive(sock, **kwargs):
     :return:
     """
     args = dict(
-        timeout=-1
+        timeout=10
     )
     args.update(kwargs)
 
-    if args['timeout'] != -1:
-        sock.settimeout(args['timeout'])
-    else:
-        sock.settimeout(10)
+    sock.settimeout(args['timeout'])
 
     try:
         string = sock.recv(MAX_MESSAGE_SIZE)
@@ -31,8 +28,9 @@ def receive(sock, **kwargs):
         while len(string) < length:
             string += sock.recv(MAX_MESSAGE_SIZE)
     except socket.timeout:
-        # Timed out
         return Response(False, 'Receive timed out')
+    except ValueError:
+        return Response(False, 'Received message is broken')
 
     if string == '':
         # it is eof. Socket is fucked up
@@ -54,7 +52,6 @@ def send(body, headers, sock):
             total = len(msg)
             sent += sock.send(msg)
         except:
-            tools.log('Peer died')
             return False
     else:
         for part in msg:
@@ -62,7 +59,6 @@ def send(body, headers, sock):
             try:
                 sent += sock.send(part)
             except:
-                tools.log('Peer died')
                 return False
 
     return sent == total

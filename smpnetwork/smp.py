@@ -1,5 +1,6 @@
 import json
 import socket
+import schedule
 import threading
 import time
 from message import Message
@@ -11,21 +12,27 @@ class SMProtocol:
     def __init__(self, sock, hb_interval=5):
         self.sock = sock
         self.receive_thread = threading.Thread(target=self._bind)
-        self.heartbeat_thread = threading.Thread(target=self.heartbeat)
+        self.scheduler_thread = threading.Thread(target=self.scheduler)
         self.is_active = True
         self._messages = {}
         self.sent_message_counter = 0
         self.hb_interval = hb_interval
+        self.hb_index = 0
 
     def bind(self):
+        schedule.every(self.hb_interval).seconds.do(self.heartbeat_send)
         self.receive_thread.start()
-        self.heartbeat_thread.start()
+        self.scheduler_thread.start()
 
     def unbind(self):
         self.is_active = False
-        self.receive_thread.join(timeout=3)
-        self.heartbeat_thread.join(timeout=3)
-        self.sock.close()
+        try:
+            self.sock.shutdown(socket.SHUT_RDWR)
+            self.sock.close()
+        except:
+            pass
+        self.receive_thread.join()
+        self.scheduler_thread.join()
 
     def send_message(self, body, headers):
         if "id" not in headers:
@@ -47,15 +54,17 @@ class SMProtocol:
     def is_connected(self):
         return self.is_active
 
-    def heartbeat(self):
-        index = 1
+    def heartbeat_send(self):
+        result = smpnetwork.send("", {"HB": str(self.hb_index)}, self.sock)
+        if not result and self.is_active:
+            self.is_active = False
+            self.connection_error()
+        self.hb_index += 1
+
+    def scheduler(self):
         while self.is_active:
-            if smpnetwork.send("", {"HB": str(index)}, self.sock):
-                time.sleep(self.hb_interval)
-                index += 1
-            else:
-                self.is_active = False
-                self.connection_error()
+            schedule.run_pending()
+            time.sleep(0.5)
 
     def _bind(self):
         def strip_eof(message):
@@ -115,6 +124,6 @@ class SMProtocol:
                 # Receive did not complete well. Something is wrong with socket.
                 # We decide to close it after printing out reason
                 tools.log(response.getData())
-                self.sock.close()
-                self.is_active = False
-                self.connection_error()
+                if self.is_active:
+                    self.is_active = False
+                    self.connection_error()
