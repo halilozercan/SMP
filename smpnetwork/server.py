@@ -1,9 +1,7 @@
 import socket
-import threading
-import time
 import ssl
+import threading
 
-import tools
 from smp import SMProtocol
 
 
@@ -75,8 +73,6 @@ class Server:
         self.socket.listen(self.backlog)
         self.socket.settimeout(1000)
 
-        tools.log("Started server at" + str(self.port))
-
         while self.is_active:
             try:
                 client_sock, address = self.socket.accept()
@@ -84,8 +80,6 @@ class Server:
                     client_sock = ssl.wrap_socket(client_sock, server_side=True, **self.ssl_args)
                 self.new_client(client_sock, address)
             except Exception as exc:
-                tools.log('Networking error: ' + str(self.port))
-                tools.log(exc)
                 self.is_active = False
 
 
@@ -100,4 +94,4 @@ class ServerSMProtocol(SMProtocol):
         try:
             del self.server.client_smp_dict[self.server_assigned_name]
         except:
-            tools.log("Could not delete connection from server pool")
+            pass

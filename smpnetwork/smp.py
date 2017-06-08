@@ -5,7 +5,6 @@ import threading
 import time
 from message import Message
 import smpnetwork
-from smpnetwork import tools
 
 
 class SMProtocol:
@@ -85,13 +84,11 @@ class SMProtocol:
                     header_str = string[:header_end_index]
                     body_str = string[header_end_index + 1:]
                 except:
-                    tools.log("Could not partition received string")
                     continue
 
                 try:
                     header_dict = json.loads(header_str)
                 except:
-                    tools.log("Header could not be parsed")
                     continue
 
                 if "HB" in header_dict:
@@ -123,7 +120,6 @@ class SMProtocol:
             else:
                 # Receive did not complete well. Something is wrong with socket.
                 # We decide to close it after printing out reason
-                tools.log(response.getData())
                 if self.is_active:
                     self.is_active = False
                     self.connection_error()

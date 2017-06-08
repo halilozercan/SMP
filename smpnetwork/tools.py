@@ -1,12 +1,8 @@
 """A bunch of functions that are used by multiple threads.
 """
 
-import logging
-
 import re
 import subprocess
-
-logger = logging.getLogger('smp')
 
 
 def split_size(content, size):
@@ -16,13 +12,6 @@ def split_size(content, size):
     for i in range(bin_count):
         bins[i] = content[i * size:(i + 1) * size]
     return bins
-
-
-def log(junk):
-    if isinstance(junk, Exception):
-        logger.exception(junk)
-    else:
-        logger.info(str(junk))
 
 
 def kill_processes_using_ports(ports):
