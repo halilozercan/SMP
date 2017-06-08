@@ -1,40 +1,43 @@
-import json
 import socket
 import threading
 import time
-from message import Message
+
 import smpnetwork
-from smpnetwork import tools
+from message import Message
 
 
 class SMProtocol:
     def __init__(self, sock, hb_interval=5):
         self.sock = sock
         self.receive_thread = threading.Thread(target=self._bind)
+        self.__hb_enabled = (hb_interval > 0)
         self.heartbeat_thread = threading.Thread(target=self.heartbeat)
-        self.is_active = True
-        self._messages = {}
-        self.sent_message_counter = 0
         self.hb_interval = hb_interval
+        self.is_active = True
+        self.sent_message_counter = 0
 
     def bind(self):
         self.receive_thread.start()
-        self.heartbeat_thread.start()
+        if self.__hb_enabled:
+            self.heartbeat_thread.start()
 
     def unbind(self):
         self.is_active = False
-        self.receive_thread.join(timeout=3)
-        self.heartbeat_thread.join(timeout=3)
+        self.sock.shutdown(socket.SHUT_RDWR)
+        self.sock.close()
+        self.receive_thread.join()
+        if self.__hb_enabled:
+            self.heartbeat_thread.join()
         self.sock.close()
 
-    def send_message(self, body, headers):
-        if "id" not in headers:
-            headers["id"] = "message_" + str(self.sent_message_counter)
+    def send_message(self, msg):
+        if msg.get_header('id') is None:
+            msg.set_header('id', "message_" + str(self.sent_message_counter))
 
-        if "content_length" not in headers:
-            headers["content_length"] = len(body)
+        if msg.get_header('content_length') is None:
+            msg.set_header('content_length', len(msg.get_body()))
 
-        return smpnetwork.send(body, headers, self.sock)
+        return smpnetwork.send(msg, self.sock)
 
     def receive_message(self, message):
         # Should be implemented by subclass
@@ -50,7 +53,8 @@ class SMProtocol:
     def heartbeat(self):
         index = 1
         while self.is_active:
-            if smpnetwork.send("", {"HB": str(index)}, self.sock):
+            hb_msg = Message(body="", headers={"HB": str(index)})
+            if smpnetwork.send(hb_msg, self.sock):
                 time.sleep(self.hb_interval)
                 index += 1
             else:
@@ -58,63 +62,24 @@ class SMProtocol:
                 self.connection_error()
 
     def _bind(self):
-        def strip_eof(message):
-            body = message.get_body()
-            if body[-1] == '\x10':
-                body = body[:-1]
-                message.set_body(body)
-                return message
-            else:
-                return None
 
         while self.is_active:
             response = smpnetwork.receive(self.sock)
+            print 'received', response
             if response.is_successful():
                 string = response.getData()
                 try:
-                    header_end_index = string.index("\n")
-                    header_str = string[:header_end_index]
-                    body_str = string[header_end_index + 1:]
+                    received_message = Message.from_str(string)
                 except:
-                    tools.log("Could not partition received string")
                     continue
 
-                try:
-                    header_dict = json.loads(header_str)
-                except:
-                    tools.log("Header could not be parsed")
-                    continue
-
-                if "HB" in header_dict:
+                if received_message.get_header('HB') is not None:
                     # Simple heartbeat. Al iz wel
                     continue
 
-                if "id" in header_dict:
-                    # Can be part of a multipart message
-                    if header_dict["id"] in self._messages:
-                        earlier_message = self._messages[header_dict["id"]]
-                        earlier_message.add_body(body_str)
-                    else:
-                        msg = Message(header_dict, body_str)
-                        self._messages[header_dict["id"]] = msg
-                    # Check whether this message is finally complete
+                self.receive_message(received_message)
 
-                    current_message = self._messages[header_dict["id"]]
-                else:
-                    # Message should(must) not be multipart
-                    current_message = Message(header_dict, body_str)
-
-                stripped = strip_eof(current_message)
-                if stripped is not None:
-                    current_message = stripped
-                    if "id" in header_dict:
-                        del self._messages[header_dict["id"]]
-                    self.receive_message(current_message)
-
-            else:
-                # Receive did not complete well. Something is wrong with socket.
-                # We decide to close it after printing out reason
-                tools.log(response.getData())
+            elif response.getData() != 'timeout' or (response.getData() == 'timeout' and self.__hb_enabled):
                 self.sock.close()
                 self.is_active = False
                 self.connection_error()

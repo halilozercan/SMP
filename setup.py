@@ -4,7 +4,7 @@ from setuptools import find_packages
 
 setup(
     name='SMPNetwork',
-    version='0.0.1b',
+    version='0.0.5',
     description='Simple Messaging Protocol between a server and multiple clients. '
                 'Supports continuous connections and SSL.',
     author='Halil Ozercan',

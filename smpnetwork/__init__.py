@@ -1,6 +1,5 @@
 import socket
 
-import tools
 from message import Message
 from response import Response
 
@@ -32,18 +31,19 @@ def receive(sock, **kwargs):
             string += sock.recv(MAX_MESSAGE_SIZE)
     except socket.timeout:
         # Timed out
-        return Response(False, 'Receive timed out')
+        return Response(False, 'timeout')
 
     if string == '':
+        print 'Received nothing'
         # it is eof. Socket is fucked up
-        return Response(False, "Connection closed")
+        return Response(False, "closed")
+
+    print 'Received string'
 
     return Response(True, string)
 
 
-def send(body, headers, sock):
-    _msg = Message(header=headers, body=body)
-
+def send(_msg, sock):
     msg = str(_msg)
     sent = 0
     total = 0
@@ -54,7 +54,6 @@ def send(body, headers, sock):
             total = len(msg)
             sent += sock.send(msg)
         except:
-            tools.log('Peer died')
             return False
     else:
         for part in msg:
@@ -62,9 +61,9 @@ def send(body, headers, sock):
             try:
                 sent += sock.send(part)
             except:
-                tools.log('Peer died')
                 return False
 
+    print 'returning from send', sent == total
     return sent == total
 
 

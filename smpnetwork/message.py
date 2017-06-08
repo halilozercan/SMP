@@ -2,10 +2,10 @@ import json
 
 
 class Message:
-    def __init__(self, header=None, body=""):
-        if header is None:
-            header = {}
-        self.headers = header
+    def __init__(self, headers=None, body=""):
+        if headers is None:
+            headers = {}
+        self.headers = headers
         self.body = body
 
     def set_header(self, key, value):
@@ -33,3 +33,18 @@ class Message:
         result += self.body
         result += '\x10'
         return result
+
+    @staticmethod
+    def from_str(string):
+        header_end_index = string.index("\n")
+        header_str = string[:header_end_index]
+        body_str = string[header_end_index + 1:]
+
+        header_dict = json.loads(header_str)
+
+        if body_str[-1] == '\x10':
+            body_str = body_str[:-1]
+        else:
+            raise ValueError('Body does not end with marking character')
+
+        return Message(headers=header_dict, body=body_str)

@@ -1,12 +1,9 @@
 """A bunch of functions that are used by multiple threads.
 """
 
-import logging
 
 import re
 import subprocess
-
-logging.basicConfig(filename="log", level=logging.INFO)
 
 
 def split_size(content, size):
@@ -16,13 +13,6 @@ def split_size(content, size):
     for i in range(bin_count):
         bins[i] = content[i * size:(i + 1) * size]
     return bins
-
-
-def log(junk):
-    if isinstance(junk, Exception):
-        logging.exception(junk)
-    else:
-        logging.info(str(junk))
 
 
 def kill_processes_using_ports(ports):

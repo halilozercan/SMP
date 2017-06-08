@@ -3,7 +3,6 @@ import threading
 import time
 import ssl
 
-import tools
 from smp import SMProtocol
 
 
@@ -32,10 +31,10 @@ class Server:
 
         self.new_client_lock = threading.Lock()
 
-    def new_client(self, _socket):
+    def new_client(self, _socket, _address):
         self.new_client_lock.acquire()
         name = str(self.client_counter) + "_client"
-        _smp = self.smprotocol(_socket, self, name, *self.smp_args)
+        _smp = self.smprotocol(_socket, self, name, _address, *self.smp_args)
         _smp.bind()
         self.client_smp_dict[name] = _smp
         self.client_counter += 1
@@ -51,10 +50,10 @@ class Server:
             self.thread.join(timeout=2)
         return True
 
-    def send_message(self, body, headers, target=None):
+    def send_message(self, msg, target=None):
         for smp in self.client_smp_dict.values():
             if (target is None or target == smp.name) and smp.is_active:
-                smp.send_message(body, headers)
+                smp.send_message(msg)
 
     def run_async(self):
         self.thread.start()
@@ -67,27 +66,25 @@ class Server:
         self.socket.bind((self.host, self.port))
         self.socket.listen(self.backlog)
 
-        tools.log("Started server at" + str(self.port))
-
         while self.is_active:
             try:
                 client_sock, address = self.socket.accept()
                 if self.ssl_args is not None:
                     client_sock = ssl.wrap_socket(client_sock, server_side=True, **self.ssl_args)
-                self.new_client(client_sock)
-            except Exception as exc:
-                tools.log('Networking error: ' + str(self.port))
-                tools.log(exc)
+                self.new_client(client_sock, address)
+            except:
+                pass
 
 
 class ServerSMProtocol(SMProtocol):
-    def __init__(self, sock, server, server_assigned_name):
+    def __init__(self, sock, server, server_assigned_name, address):
         self.server = server
         self.server_assigned_name = server_assigned_name
+        self.address = address
         SMProtocol.__init__(self, sock)
 
     def connection_error(self):
         try:
             del self.server.client_smp_dict[self.server_assigned_name]
         except:
-            tools.log("Could not delete connection from server pool")
+            pass
