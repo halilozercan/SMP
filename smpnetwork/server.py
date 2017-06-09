@@ -55,9 +55,7 @@ class Server:
     ;param target: a callable that evaluates whether given client should receive the message
     """
     def send_message(self, msg, target=None):
-        print 'Send server message'
         for client in self.client_smp_dict.values():
-            print 'Client', client.server_assigned_name, client.name, target(client)
             if (target is None or target(client)) and client.is_active:
                 client.send_message(msg)
 
