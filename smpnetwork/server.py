@@ -1,9 +1,8 @@
 import socket
+import ssl
 import threading
 import time
-import ssl
 
-import tools
 from smp import SMProtocol
 
 
@@ -51,10 +50,14 @@ class Server:
             self.thread.join(timeout=2)
         return True
 
-    def send_message(self, body, headers, target=None):
-        for smp in self.client_smp_dict.values():
-            if (target is None or target == smp.name) and smp.is_active:
-                smp.send_message(body, headers)
+    """
+    ;param msg: Message to be sent to targets
+    ;param target: a callable that evaluates whether given client should receive the message
+    """
+    def send_message(self, msg, target=None):
+        for client in self.client_smp_dict.values():
+            if (target is None or target(client)) and client.is_active:
+                client.send_message(msg)
 
     def run_async(self):
         self.thread.start()
