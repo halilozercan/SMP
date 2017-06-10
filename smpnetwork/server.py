@@ -95,7 +95,7 @@ class ServerSMProtocol(SMProtocol):
         self.server_assigned_name = server_assigned_name
         self.address = address
         self.message_queue = message_queue
-        self.message_thread = threading.Thread(self.send_message_thread)
+        self.message_thread = threading.Thread(target=self.send_message_thread)
         SMProtocol.__init__(self, sock)
 
     def bind(self):
