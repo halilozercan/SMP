@@ -8,7 +8,7 @@ MAX_MESSAGE_SIZE = 1024
 
 def receive(sock, **kwargs):
     """
-    Receives a socket message from one time. This is not a SMP message.
+    Receives a socket message one time. This is not a SMP message.
     :param sock: Socket
     :param kwargs: 
     :return:
@@ -42,25 +42,14 @@ def receive(sock, **kwargs):
 
 def send(_msg, sock):
     msg = str(_msg)
-    sent = 0
-    total = 0
 
-    if isinstance(msg, str):
-        try:
-            msg = str(len(msg)) + ":" + msg
-            total = len(msg)
-            sent += sock.send(msg)
-        except:
-            return False
-    else:
-        for part in msg:
-            total += len(part)
-            try:
-                sent += sock.send(part)
-            except:
-                return False
+    try:
+        msg = str(len(msg)) + ":" + msg
+        sent = sock.send(msg)
+    except:
+        return False
 
-    return sent == total
+    return sent == len(msg)
 
 
 def connect(host='localhost', port=3699, ssl_args=None):

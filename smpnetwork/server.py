@@ -1,3 +1,5 @@
+import Queue
+import inspect
 import socket
 import ssl
 import threading
@@ -8,7 +10,10 @@ from smp import SMProtocol
 
 class Server:
     def __init__(self, smprotocol, port, external=False, smp_args=(), ssl_args=None):
-        self.smprotocol = smprotocol
+        if inspect.isclass(smprotocol):
+            self.smprotocol = smprotocol
+        else:
+            raise ValueError('Specified smp is not a class definition')
         self.port = port
         self.external = external
         self.ssl_args = ssl_args
@@ -33,8 +38,9 @@ class Server:
 
     def new_client(self, _socket, _address):
         self.new_client_lock.acquire()
-        name = str(self.client_counter) + "_client"
-        _smp = self.smprotocol(_socket, self, name, _address, *self.smp_args)
+        name = str(self.client_counter) + "c"
+        message_queue = Queue.Queue()
+        _smp = self.smprotocol(_socket, self, name, _address, message_queue, *self.smp_args)
         _smp.bind()
         self.client_smp_dict[name] = _smp
         self.client_counter += 1
@@ -81,11 +87,31 @@ class Server:
 
 
 class ServerSMProtocol(SMProtocol):
-    def __init__(self, sock, server, server_assigned_name, address):
+    def __init__(self, sock, server, server_assigned_name, address, message_queue):
         self.server = server
         self.server_assigned_name = server_assigned_name
         self.address = address
+        self.message_queue = message_queue
+        self.message_thread = threading.Thread(self.send_message_thread)
         SMProtocol.__init__(self, sock)
+
+    def bind(self):
+        SMProtocol.bind(self)
+        self.message_thread.start()
+
+    def unbind(self):
+        SMProtocol.unbind(self)
+        self.message_thread.join()
+
+    def send_message_thread(self):
+        while self.is_active:
+            new_message = self.message_queue.get()
+            print "Received message from queue"
+            SMProtocol.send_message(self, new_message)
+
+    def send_message(self, msg):
+        print 'Put message in queue'
+        self.message_queue.put(msg)
 
     def connection_error(self):
         try:
