@@ -40,11 +40,8 @@ class Server:
         self.new_client_lock.acquire()
         name = str(self.client_counter) + "c"
         message_queue = Queue.Queue()
-        print "new client"
         _smp = self.smprotocol(_socket, self, name, _address, message_queue, *self.smp_args)
-        print "Binding new client"
         _smp.bind()
-        print "binded new client"
         self.client_smp_dict[name] = _smp
         self.client_counter += 1
 
@@ -109,11 +106,9 @@ class ServerSMProtocol(SMProtocol):
     def send_message_thread(self):
         while self.is_active:
             new_message = self.message_queue.get()
-            print "Received message from queue"
             SMProtocol.send_message(self, new_message)
 
     def send_message(self, msg):
-        print 'Put message in queue'
         self.message_queue.put(msg)
 
     def connection_error(self):

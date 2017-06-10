@@ -14,7 +14,8 @@ def receive(sock, **kwargs):
     :return:
     """
     args = dict(
-        timeout=-1
+        timeout=-1,
+        leftover=''
     )
     args.update(kwargs)
 
@@ -24,20 +25,26 @@ def receive(sock, **kwargs):
         sock.settimeout(10)
 
     try:
-        string = sock.recv(MAX_MESSAGE_SIZE)
-        length = int(string[:string.index(":")])
-        string = string[string.index(":") + 1:]
+        string = args['leftover']
+        while string == '':
+            string += sock.recv(MAX_MESSAGE_SIZE)
+
+        while string.find(':') < 0:
+            string += sock.recv(MAX_MESSAGE_SIZE)
+
+        length = int(string[:string.find(":")])
+        string = string[string.find(":") + 1:]
+
         while len(string) < length:
             string += sock.recv(MAX_MESSAGE_SIZE)
+
+        received_string = string[:length]
+        leftover = string[length:]
+        return Response(True, received_string), leftover
+
     except socket.timeout:
         # Timed out
         return Response(False, 'timeout')
-
-    if string == '':
-        # it is eof. Socket is fucked up
-        return Response(False, "closed")
-
-    return Response(True, string)
 
 
 def send(_msg, sock):

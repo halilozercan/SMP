@@ -62,9 +62,9 @@ class SMProtocol:
                 self.connection_error()
 
     def _bind(self):
-
+        leftover = ''
         while self.is_active:
-            response = smpnetwork.receive(self.sock)
+            response, leftover = smpnetwork.receive(self.sock, leftover=leftover)
             if response.is_successful():
                 string = response.getData()
                 try:
