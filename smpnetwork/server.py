@@ -40,8 +40,11 @@ class Server:
         self.new_client_lock.acquire()
         name = str(self.client_counter) + "c"
         message_queue = Queue.Queue()
+        print "new client"
         _smp = self.smprotocol(_socket, self, name, _address, message_queue, *self.smp_args)
+        print "Binding new client"
         _smp.bind()
+        print "binded new client"
         self.client_smp_dict[name] = _smp
         self.client_counter += 1
 
