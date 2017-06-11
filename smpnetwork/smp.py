@@ -31,9 +31,6 @@ class SMProtocol:
         self.sock.close()
 
     def send_message(self, msg):
-        if msg.get_header('id') is None:
-            msg.set_header('id', "message_" + str(self.sent_message_counter))
-
         if msg.get_header('content_length') is None:
             msg.set_header('content_length', len(msg.get_body()))
 

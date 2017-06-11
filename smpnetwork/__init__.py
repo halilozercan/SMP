@@ -32,8 +32,9 @@ def receive(sock, **kwargs):
         while string.find(':') < 0:
             string += sock.recv(MAX_MESSAGE_SIZE)
 
-        length = int(string[:string.find(":")])
-        string = string[string.find(":") + 1:]
+        sep_loc = string.find(":")
+        length = int(string[:sep_loc])
+        string = string[sep_loc + 1:]
 
         while len(string) < length:
             string += sock.recv(MAX_MESSAGE_SIZE)

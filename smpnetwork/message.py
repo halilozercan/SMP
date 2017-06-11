@@ -34,6 +34,9 @@ class Message:
         result += '\x10'
         return result
 
+    def __repr__(self):
+        return self.body
+
     @staticmethod
     def from_str(string):
         header_end_index = string.index("\n")

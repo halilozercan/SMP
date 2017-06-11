@@ -39,8 +39,7 @@ class Server:
     def new_client(self, _socket, _address):
         self.new_client_lock.acquire()
         name = str(self.client_counter) + "c"
-        message_queue = Queue.Queue()
-        _smp = self.smprotocol(_socket, self, name, _address, message_queue, *self.smp_args)
+        _smp = self.smprotocol(_socket, self, name, _address, *self.smp_args)
         _smp.bind()
         self.client_smp_dict[name] = _smp
         self.client_counter += 1
@@ -87,11 +86,11 @@ class Server:
 
 
 class ServerSMProtocol(SMProtocol):
-    def __init__(self, sock, server, server_assigned_name, address, message_queue):
+    def __init__(self, sock, server, server_assigned_name, address):
         self.server = server
         self.server_assigned_name = server_assigned_name
         self.address = address
-        self.message_queue = message_queue
+        self.message_queue = Queue.Queue()
         self.message_thread = threading.Thread(target=self.send_message_thread)
         SMProtocol.__init__(self, sock)
 
@@ -105,8 +104,11 @@ class ServerSMProtocol(SMProtocol):
 
     def send_message_thread(self):
         while self.is_active:
-            new_message = self.message_queue.get()
-            SMProtocol.send_message(self, new_message)
+            try:
+                new_message = self.message_queue.get(block=False)
+                SMProtocol.send_message(self, new_message)
+            except:
+                pass
 
     def send_message(self, msg):
         self.message_queue.put(msg)
