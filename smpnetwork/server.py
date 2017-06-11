@@ -50,9 +50,10 @@ class Server:
         self.is_active = False
         for smp in self.client_smp_dict.values():
             smp.unbind()
+        self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
         if self.thread_started:
-            self.thread.join(timeout=2)
+            self.thread.join()
         return True
 
     """
