@@ -3,20 +3,22 @@ My own Socket Messaging Protocol. Useful for simple server-client messaging with
 
 ## Connection
 
-This protocol should only be used in TCP communication. It is a high-level abstraction in terms of data types. This protocol heavily relies on string representation. It is not suitable to transfer raw data.
+This protocol should only be used in TCP communication. It is a high-level abstraction in terms of data types. The protocol uses a schema similar to HTTP but it uses YAML serialization to achieve many kind of data transfers.
 
 ## Message
 
-- A message can be at most 1460 bytes
 - Each message contains header and body parts.
-- Unicode is only allowed in body part.
-- Long messages can be multi-parted. If a received message is not complete, it is assumed to be continuing in the next socket message. 
+- Unicode is allowed in any part of the message.
+- SMP supports continous messages because it is already a continous connection.
+ - Parted messages point out this property by providing 'cont-part' header field, e.g. _i_ th part has a header field "cont-part":"i"
+ - Last part is specified by adding '-end' to this header, e.g. "cont-part":"27-end"
+ - Every received part should trigger a part complete callback in implementation. When whole message is received including '-end' part, complete message receive should trigger. 
 
 ### Header
 
-Header can contain information about the client, message itself and connection properties. A header must fit in one TCP message. Any header information that is longer than 1460 bytes should be recognized as invalid.
+Header can contain information about the client, message itself and connection properties.
 
-- Header is essentially a map of ```<String, String>``` entries that are formatted in JSON. 
+- Header is essentially a map of ```<String, String>``` entries. 
 - Starts at the beginning of the message, ends with first new line('\n') character.
 - All the header fields that are described in this document are optional. 
 
